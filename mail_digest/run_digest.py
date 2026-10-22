@@ -58,7 +58,7 @@ def build_prompt(candidates: List[Dict[str, Any]], user_profile: Dict[str, Any])
             f"[{idx}] 출처:{c['source']} | 점수:{c.get('score',0)} | 분류:{','.join(c.get('matched_categories',[]))}\n"
             f"제목: {c['subject']}\n"
             f"발신: {c['sender']} ({c['date']})\n"
-            f"내용: {c['body'][:400]}"
+            f"내용: {c['body'][:1000]}"
         )
 
     joined = "\n\n".join(items_text)
