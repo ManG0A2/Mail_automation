@@ -1,0 +1,33 @@
+name: Daily Smart Mail Digest
+
+on:
+  schedule:
+    # 매일 낮 12시 00분 (한국 시간 KST = UTC+9 이므로 UTC 03:00)
+    - cron: '0 3 * * *'
+  workflow_dispatch: # 언제든 웹/모바일에서 수동 실행 버튼으로도 즉시 실행 가능
+
+jobs:
+  send-digest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run Mail Digest (Fetch + Filter + POSTECH AI Summarize + Discord Notify)
+        env:
+          TZ: Asia/Seoul
+          NAVER_EMAIL: ${{ secrets.NAVER_EMAIL }}
+          NAVER_APP_PASSWORD: ${{ secrets.NAVER_APP_PASSWORD }}
+          NAVER_POSTECH_FOLDER: ${{ secrets.NAVER_POSTECH_FOLDER || 'POSTECH_BOT' }}
+          AUTO_CLEAN_POSTECH_FOLDER: 'true'
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          AI_API_BASE_URL: 'https://genai.postech.ac.kr/agent/api/a3/claude'
+          AI_MODEL: 'claude-sonnet-4.5'
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          python3 mail_digest/run_digest.py --standalone
