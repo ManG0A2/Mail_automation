@@ -4,3 +4,5 @@ __pycache__/
 data/
 reports/
 .DS_Store
+recordings_inbox/
+notes/

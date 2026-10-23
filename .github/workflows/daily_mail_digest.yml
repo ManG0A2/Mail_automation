@@ -2,8 +2,9 @@ name: Daily Smart Mail Digest
 
 on:
   schedule:
-    # 매일 낮 12시 00분 (한국 시간 KST = UTC+9 이므로 UTC 03:00)
-    - cron: '0 3 * * *'
+    # 매일 11:40 KST (UTC 02:40). 정각(:00)은 GitHub 예약 실행이 몰려 누락/지연이 잦아 피함.
+    # GitHub 지연(보통 5~20분)을 감안하면 12시 전후 도착.
+    - cron: '40 2 * * *'
   workflow_dispatch: # 언제든 웹/모바일에서 수동 실행 버튼으로도 즉시 실행 가능
 
 jobs:

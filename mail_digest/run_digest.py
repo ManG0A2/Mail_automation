@@ -7,7 +7,7 @@ from typing import Any, Dict, List
 import urllib.request
 
 from fetcher import evaluate_email, load_env, run_fetch
-from notifier import _get_ssl_context, dispatch_notifications
+from notifier import _get_ssl_context, dispatch_notifications, send_discord
 
 
 SAMPLE_EMAILS = [
@@ -183,20 +183,32 @@ def main():
     args = parser.parse_args()
 
     base_dir = Path(__file__).resolve().parent.parent
-    data = run_demo(base_dir) if args.demo else run_fetch(base_dir)
+    env_vars = {**os.environ, **load_env(base_dir / ".env")}
+    webhook = env_vars.get("DISCORD_WEBHOOK_URL", "")
 
-    if args.standalone:
-        env_vars = {**os.environ, **load_env(base_dir / ".env")}
-        api_key = env_vars.get("AI_API_KEY") or env_vars.get("GEMINI_API_KEY", "")
-        if not api_key or "your_" in api_key:
-            print("⚠️ API 키가 설정되지 않았습니다. 안티그래비티에게 요약을 요청하거나 .env에 키를 입력해주세요.")
-            return
-        if not data.get("candidates"):
-            print("📭 최근 24시간 내 새로운 중요 메일이 없습니다.")
-            return
-        prompt = build_prompt(data["candidates"], data.get("user_profile", {}))
-        summary = summarize_with_llm(prompt, env_vars)
-        dispatch_notifications(base_dir, summary)
+    try:
+        data = run_demo(base_dir) if args.demo else run_fetch(base_dir)
+
+        if args.standalone:
+            api_key = env_vars.get("AI_API_KEY") or env_vars.get("GEMINI_API_KEY", "")
+            if not api_key or "your_" in api_key:
+                raise RuntimeError("AI_API_KEY가 설정되지 않았습니다.")
+            if not data.get("candidates"):
+                today = datetime.date.today().strftime("%Y-%m-%d")
+                send_discord(
+                    webhook,
+                    f"📭 [{today}] 최근 24시간 동안 확인할 만한 메일이 없습니다. "
+                    f"(수집 {data.get('total_fetched', 0)}통)",
+                )
+                return
+            prompt = build_prompt(data["candidates"], data.get("user_profile", {}))
+            summary = summarize_with_llm(prompt, env_vars)
+            dispatch_notifications(base_dir, summary)
+    except Exception as e:
+        # 조용히 실패하지 않도록 디스코드로 실패 사유 전송 후, GitHub에서도 빨간색(실패)으로 표시
+        if args.standalone:
+            send_discord(webhook, f"❌ 메일 브리핑 실패: `{type(e).__name__}: {e}`")
+        raise
 
 
 if __name__ == "__main__":
